@@ -2,7 +2,7 @@ version: '3.2'
 
 services:
   app:
-    image: ghcr.io/sidneyjfg/monitoramento_TrayCorp:latest
+    image: ghcr.io/sidneyjfg/monitoramento_tray_corp:latest
     container_name: monitoramento_automatico_traycorp
     restart: unless-stopped
     environment:
