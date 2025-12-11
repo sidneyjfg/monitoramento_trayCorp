@@ -7,7 +7,7 @@ export const sqlMonitoramentoPool = mysql.createPool({
   port: config.DB_MONITORAMENTO_PORT,
   user: config.DB_MONITORAMENTO_USER,
   password: config.DB_MONITORAMENTO_PASSWORD,
-  database: config.DB_NAME,
+  database: config.DB_NAME_MONITORAMENTO,
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 0,
