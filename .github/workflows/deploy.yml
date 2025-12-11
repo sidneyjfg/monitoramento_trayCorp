@@ -2,7 +2,7 @@ name: Deploy Tray Monitoramento
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
   build:
