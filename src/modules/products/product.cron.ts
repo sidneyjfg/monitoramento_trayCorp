@@ -2,7 +2,7 @@
 import cron from "node-cron";
 import { ProductService } from "./product.service";
 import { config } from "../../config";
-import { logger } from "../../utils/logger"; // opcional, caso você use logger
+import { logger } from "../../utils/logger";
 
 export const startProductCron = () => {
   const cronSchedule = config.CRON_SCHEDULE;
@@ -11,15 +11,35 @@ export const startProductCron = () => {
   cron.schedule(
     cronSchedule,
     async () => {
-      try {
-        logger?.info?.("⏳ Iniciando sincronização de produtos via cron...");
+      const start = Date.now();
 
+      logger?.info?.("🔄 [CRON-PRODUTOS] Iniciando sincronização de produtos...");
+
+      try {
         const result = await service.syncTrayProductsToTemp();
 
-        logger?.info?.(`✔️ Sincronização concluída. Produtos inseridos: ${result.inserted}, inválidos: ${result.invalid}`);
+        const duration = ((Date.now() - start) / 1000).toFixed(2);
+
+        logger?.info?.({
+          event: "CRON_PRODUTOS_FINALIZADO",
+          message: "✔️ Sincronização concluída com sucesso.",
+          inserted: result.inserted,
+          invalid: result.invalid,
+          duration_seconds: duration,
+          timestamp: new Date().toISOString(),
+        });
+
       } catch (error: any) {
-        const msg = error?.message || error;
-        logger?.error?.("❌ Erro ao executar sincronização de produtos:", msg);
+        const duration = ((Date.now() - start) / 1000).toFixed(2);
+
+        logger?.error?.({
+          event: "CRON_PRODUTOS_ERRO",
+          message: "❌ Erro ao executar sincronização de produtos.",
+          error_message: error?.message || String(error),
+          stack: error?.stack,
+          duration_seconds: duration,
+          timestamp: new Date().toISOString(),
+        });
       }
     },
     {
@@ -27,7 +47,11 @@ export const startProductCron = () => {
     }
   );
 
-  logger?.info?.(
-    `🔁 Cron job de produtos agendado: ${cronSchedule} (timezone: America/Sao_Paulo)`
-  );
+  logger?.info?.({
+    event: "CRON_PRODUTOS_AGENDADO",
+    message: `🔁 Cron de produtos agendado.`,
+    schedule: cronSchedule,
+    timezone: "America/Sao_Paulo",
+    timestamp: new Date().toISOString(),
+  });
 };

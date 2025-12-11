@@ -2,3 +2,4 @@
 script.sql
 node_modules
 package-lock.json
+core
