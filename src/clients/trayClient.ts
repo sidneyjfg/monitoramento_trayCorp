@@ -60,7 +60,9 @@ async function fetchPageWithRetry(finalUrl: string, token: string, page: number)
   }
 }
 
-export async function fetchTrayProducts(): Promise<TrayFetchResult> {
+export async function fetchTrayProducts(
+  onPage: (products: any[], page: number) => Promise<void>
+): Promise<number> {
   const baseUrl = process.env.TRAY_URL || "";
   const token = process.env.TRAY_TOKEN || "";
 
@@ -69,8 +71,6 @@ export async function fetchTrayProducts(): Promise<TrayFetchResult> {
   }
 
   let page = 1;
-  const allProducts: any[] = [];
-
   let requestCount = 0;
   let windowStart = Date.now();
 
@@ -95,50 +95,33 @@ export async function fetchTrayProducts(): Promise<TrayFetchResult> {
     const finalUrl = `${baseUrl.replace(/\/+$/, "")}/produtos?camposAdicionais=estoque&pagina=${page}`;
     console.log(`🔎 Buscando página ${page}: ${finalUrl}`);
 
-    requestCount++; // 📌 Conta a requisição desta página
+    requestCount++;
+
+    let data: any[];
 
     try {
-      // 🎯 Agora usamos a função segura com retry + backoff
-      const data = await fetchPageWithRetry(finalUrl, token, page);
-
-      // 🧪 Validação
-      if (!Array.isArray(data)) {
-        console.error(`⚠ Página ${page} retornou formato inesperado.`, data);
-        break;
-      }
-
-      if (data.length === 0) {
-        console.log(`🔚 Página ${page} vazia. Fim da paginação.`);
-        break;
-      }
-
-      console.log(`📦 Página ${page}: ${data.length} produtos recebidos.`);
-      allProducts.push(...data);
-      page++;
-
+      data = await fetchPageWithRetry(finalUrl, token, page);
     } catch (err: any) {
       const status = err.response?.status;
 
-      if (status === 404) {
-        console.log(`🔚 Página ${page} não existe (404). Encerrando.`);
-        break;
-      }
-
-      if (status === 429) {
-        console.log("🛑 Rate limit irreversível. Abortando sincronização.");
-        break;
-      }
-
-      console.error("❌ Erro inesperado:", err.message);
+      if (status === 404 || status === 429) break;
       throw err;
     }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      console.log(`🔚 Página ${page} vazia. Fim da paginação.`);
+      break;
+    }
+
+    console.log(`📦 Página ${page}: ${data.length} produtos recebidos.`);
+
+    // 🔥 PROCESSA A PÁGINA AQUI
+    await onPage(data, page);
+
+    page++;
   }
 
-  console.log(`✅ Total de produtos coletados: ${allProducts.length}`);
-  const totalPages = page - 1;
-
-  return {
-    products: allProducts,
-    pages: totalPages,
-  };
+  console.log(`✅ Total de páginas processadas: ${page - 1}`);
+  return page - 1;
 }
+
